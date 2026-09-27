@@ -29,6 +29,8 @@ button {
       color: white;
       font-size: 20px;
       cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
 }
 
 button:hover, button:focus-visible { background: #7774f2; }
@@ -55,6 +57,15 @@ button:hover, button:focus-visible { background: #7774f2; }
       place-items: center;
       user-select: none;
       will-change: transform;
+}
+
+.jump-button {
+      min-width: 110px;
+      background: #ef476f;
+}
+
+.jump-button:hover, .jump-button:focus-visible {
+      background: #ff6685;
 }
 
 #name { z-index: 2; }

@@ -6,6 +6,7 @@ const upButton = document.getElementById("up");
 const downButton = document.getElementById("down");
 const leftButton = document.getElementById("left");
 const rightButton = document.getElementById("right");
+const jumpButton = document.getElementById("jump");
 
 let nameX = 30;
 let nameY = 30;
@@ -15,6 +16,11 @@ const step = 12;
 const ghostSpeed = 1.35;
 const characterSize = 55;
 let gameOver = false;
+let isJumping = false;
+let jumpHeight = 0;
+let jumpStartedAt = 0;
+const jumpDuration = 600;
+const maxJumpHeight = 38;
 
 function keepInside(value, max) {
     return Math.max(0, Math.min(value, max - characterSize));
@@ -23,7 +29,15 @@ function keepInside(value, max) {
 function moveName() {
     nameX = keepInside(nameX, game.clientWidth);
     nameY = keepInside(nameY, game.clientHeight);
-    name.style.transform = `translate(${nameX}px, ${nameY}px)`;
+    // ເກັບ x/y ໄວ້ໃນ CSS variables ເພື່ອໃຫ້ animation ກະໂດດໃຊ້ຮ່ວມກັນໄດ້.
+    name.style.setProperty("--x", `${nameX}px`);
+    name.style.setProperty("--y", `${nameY}px`);
+    renderName();
+}
+
+// ວາດຕົວລະຄອນຕາມຕຳແໜ່ງ ແລະຄວາມສູງຂອງການກະໂດດ.
+function renderName() {
+    name.style.transform = `translate(${nameX}px, ${nameY - jumpHeight}px)${isJumping ? " scale(1.08)" : ""}`;
 }
 function moveTop() {
     if (gameOver) return;
@@ -46,10 +60,53 @@ function moveRight() {
     moveName();
 }
 
-upButton.addEventListener("click", moveTop);
-downButton.addEventListener("click", moveBottom);
-leftButton.addEventListener("click", moveLeft);
-rightButton.addEventListener("click", moveRight);   
+// ເລີ່ມກະໂດດ; ຖ້າກຳລັງກະໂດດຢູ່ ຈະບໍ່ເລີ່ມຊ້ຳ.
+function jump() {
+    if (gameOver || isJumping) return;
+    isJumping = true;
+    jumpStartedAt = performance.now();
+    name.classList.add("jumping");
+    renderName();
+}
+
+// ຄຳນວນຄວາມສູງຂອງຕົວລະຄອນໃຫ້ເປັນໂຄ້ງຂຶ້ນ-ລົງ.
+function updateJump(now) {
+    if (!isJumping) return;
+
+    const progress = (now - jumpStartedAt) / jumpDuration;
+    if (progress >= 1) {
+        isJumping = false;
+        jumpHeight = 0;
+        name.classList.remove("jumping");
+        name.style.setProperty("--jump-height", "0px");
+        renderName();
+        return;
+    }
+
+    // sin() ເຮັດໃຫ້ກະໂດດນຸ່ມ: ສູງສຸດຢູ່ກາງຈັງຫວະ.
+    jumpHeight = Math.sin(progress * Math.PI) * maxJumpHeight;
+    name.style.setProperty("--jump-height", `${jumpHeight}px`);
+    renderName();
+}
+
+// pointerdown ຮອງຮັບ touch, mouse ແລະ stylus ໂດຍຕອບສະໜອງທັນທີທີ່ແຕະ.
+jumpButton.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    jump();
+});
+
+// pointerdown ເຮັດໃຫ້ປຸ່ມຕອບສະໜອງໄວ ທັງ touch ແລະ mouse.
+function bindTouchButton(button, action) {
+    button.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        action();
+    });
+}
+
+bindTouchButton(upButton, moveTop);
+bindTouchButton(downButton, moveBottom);
+bindTouchButton(leftButton, moveLeft);
+bindTouchButton(rightButton, moveRight);
 
 const keyboardMoves = {
     ArrowUp: moveTop, w: moveTop, W: moveTop,
@@ -59,6 +116,11 @@ const keyboardMoves = {
 };
 
 document.addEventListener("keydown", (event) => {
+    if (event.key === " " || event.key === "Spacebar") {
+        event.preventDefault();
+        jump();
+        return;
+    }
     const move = keyboardMoves[event.key];
     if (!move) return;
     event.preventDefault();
@@ -79,13 +141,15 @@ function moveGhost() {
 
     player.style.transform = `translate(${playerX}px, ${playerY}px)`;
 
-    if (distance < 42) {
+    // ໃນຂະນະທີ່ກະໂດດຢູ່ ຜີຈະຈັບບໍ່ໄດ້.
+    if (distance < 42 && !isJumping) {
         gameOver = true;
-        status.textContent = "ຜີຈັບໄດ້ແລ້ວ! ກົດ F5 ເພື່ອເລີ່ມໃໝ່ 👻";
+        status.textContent = "ຜີຈັບໄດ້ແລ້ວ!👻";
         game.classList.add("caught");
         return;
     }
 
+    updateJump(performance.now());
     requestAnimationFrame(moveGhost);
 }
 
@@ -94,9 +158,6 @@ playerX = game.clientWidth - characterSize - 30;
 playerY = game.clientHeight - characterSize - 30;
 player.style.transform = `translate(${playerX}px, ${playerY}px)`;
 requestAnimationFrame(moveGhost);
-
-
-
 
 
 
