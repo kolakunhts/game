@@ -76,9 +76,9 @@ function updateJump(now) {
     const progress = (now - jumpStartedAt) / jumpDuration;
     if (progress >= 1) {
         isJumping = false;
-        jumpHeight = 0;
+        jumpHeight = 10;
         name.classList.remove("jumping");
-        name.style.setProperty("--jump-height", "0px");
+        name.style.setProperty("--jump-height", "10px");
         renderName();
         return;
     }
